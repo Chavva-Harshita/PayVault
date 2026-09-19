@@ -1,0 +1,16 @@
+# Activate with: --spring.profiles.active=instance2 (in addition to, or
+# instead of, "dev" - Spring merges active profiles' properties, with the
+# last one applied taking precedence on conflicts).
+#
+# This is the SAME codebase and SAME MongoDB database as the default
+# instance - only the port differs. Because spring.application.name is
+# unchanged, Eureka groups both instances under one logical WALLET-SERVICE
+# entry, which is exactly what lets transaction-service's WalletClient
+# call "WALLET-SERVICE" without knowing there are two of them.
+
+server:
+  port: 8093
+
+eureka:
+  instance:
+    instance-id: ${spring.application.name}:${server.port}

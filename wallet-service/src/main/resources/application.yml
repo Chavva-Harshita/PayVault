@@ -1,0 +1,37 @@
+server:
+  port: ${WALLET_SERVICE_PORT:8083}
+
+spring:
+  application:
+    name: wallet-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017}
+      database: ${MONGODB_DATABASE_WALLETS:payvault_wallets}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka}
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+    # Multiple wallet-service instances (Phase 8) share this same
+    # spring.application.name -> Eureka groups them under one logical
+    # WALLET-SERVICE entry, which is what makes client-side load balancing
+    # from transaction-service transparent. instance-id is set explicitly
+    # so the Eureka dashboard can tell the two instances apart by port.
+    instance-id: ${spring.application.name}:${server.port}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    '[com.payvault.wallet]': INFO

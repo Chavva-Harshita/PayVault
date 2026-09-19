@@ -1,0 +1,6 @@
+# Local development overrides for wallet-service.
+
+logging:
+  level:
+    root: INFO
+    org.springframework.data.mongodb.core: DEBUG

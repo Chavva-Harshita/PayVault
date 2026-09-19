@@ -1,0 +1,9 @@
+# Local development overrides for eureka-server.
+# Nothing service-specific needs to change yet; this file exists so every
+# module follows the same application.yml + application-dev.yml pattern
+# established in the architecture doc, and so later phases (e.g. Docker)
+# have an obvious place to add dev-only settings.
+
+logging:
+  level:
+    root: INFO

@@ -1,0 +1,6 @@
+# Local development overrides for auth-service.
+
+logging:
+  level:
+    root: INFO
+    org.springframework.security: DEBUG

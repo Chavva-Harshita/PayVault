@@ -1,0 +1,6 @@
+# Local development overrides for user-service.
+
+logging:
+  level:
+    root: INFO
+    org.springframework.data.mongodb.core: DEBUG

@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.payvault</groupId>
+        <artifactId>payvault</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>transaction-service</artifactId>
+    <packaging>jar</packaging>
+    <name>transaction-service</name>
+    <description>Orchestrates transfers, owns transactions/ledger/idempotency records - implemented in Phase 6</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+        <dependency>
+            <!--
+                Pulled in transitively by openfeign in most Spring Cloud
+                releases, but declared explicitly here since this service's
+                whole job depends on load-balanced calls to USER-SERVICE and
+                WALLET-SERVICE resolving correctly by logical name.
+            -->
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+            Fault tolerance (Phase 9). Spring Cloud's CircuitBreaker
+            abstraction backed by Resilience4j - wraps calls to
+            USER-SERVICE / WALLET-SERVICE so a dead or slow downstream
+            instance fails fast instead of hanging or cascading.
+        -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
+        </dependency>
+
+        <!--
+            Selective retry - applied ONLY to the safe, idempotent GET
+            lookups (see ResilientUserClient / ResilientWalletClient for
+            why debit/credit are deliberately never auto-retried here).
+        -->
+        <dependency>
+            <groupId>org.springframework.retry</groupId>
+            <artifactId>spring-retry</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
+        <!--
+            Real-time updates (Phase 11). STOMP-over-WebSocket support for
+            pushing balance/transaction updates to connected clients as
+            soon as a transfer completes, instead of the frontend having
+            to poll or wait for a manual refresh.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
+        <!--
+            JWT parsing only, same as api-gateway - the STOMP CONNECT frame
+            carries the Authorization header instead of the HTTP handshake
+            (see StompAuthChannelInterceptor for why), so this service needs
+            its own lightweight validator.
+        -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.11.5</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.11.5</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.11.5</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!--
+            Real MongoDB via Testcontainers for the full-transfer-flow
+            integration test (Phase 13) - exercises the actual HTTP
+            controller + persistence path, with only the genuinely
+            external calls (to user-service/wallet-service) mocked at the
+            Spring bean boundary. Versions come from the parent pom's
+            imported testcontainers-bom.
+        -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mongodb</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

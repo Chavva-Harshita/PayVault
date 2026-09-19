@@ -1,0 +1,13 @@
+# Local development overrides for transaction-service.
+
+logging:
+  level:
+    root: INFO
+    com.payvault.transaction.client: DEBUG
+    io.github.resilience4j: DEBUG
+
+feign:
+  client:
+    config:
+      default:
+        loggerLevel: basic

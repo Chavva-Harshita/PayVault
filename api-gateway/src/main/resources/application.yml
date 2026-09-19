@@ -1,0 +1,70 @@
+server:
+  port: ${API_GATEWAY_PORT:8080}
+
+spring:
+  application:
+    name: api-gateway
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: lb://AUTH-SERVICE
+          predicates:
+            - Path=/api/auth/**
+        - id: user-service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/api/users/**
+        - id: wallet-service
+          uri: lb://WALLET-SERVICE
+          predicates:
+            # Only the /me and /me/balance endpoints are meant to be public
+            # through the gateway - the internal debit/credit/user-lookup
+            # endpoints are reached directly, service-to-service, and are
+            # not exposed here. This predicate still matches the whole
+            # /api/wallets/** path for simplicity in this project; a
+            # stricter setup would narrow it to /api/wallets/me/** only.
+            - Path=/api/wallets/**
+        - id: transaction-service
+          uri: lb://TRANSACTION-SERVICE
+          predicates:
+            - Path=/api/transactions/**
+        - id: transaction-service-ws
+          # lb:ws:// (not lb://) - Spring Cloud Gateway proxies the WebSocket
+          # upgrade itself when the route's URI scheme says so. This lets
+          # the frontend only ever talk to the gateway's origin (:8080),
+          # even for the live wallet-update socket, exactly like every
+          # REST call.
+          uri: lb:ws://TRANSACTION-SERVICE
+          predicates:
+            - Path=/ws/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka}
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+
+# Must be the SAME secret auth-service uses to sign tokens - the gateway
+# only ever verifies, never issues, but verification requires the same key.
+jwt:
+  secret: ${JWT_SECRET:dev-only-please-override-32bytes!}
+
+app:
+  cors:
+    allowed-origin: ${FRONTEND_ORIGIN:http://localhost:5173}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+
+logging:
+  level:
+    com.payvault.gateway: INFO

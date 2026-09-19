@@ -1,0 +1,39 @@
+server:
+  port: ${AUTH_SERVICE_PORT:8081}
+
+spring:
+  application:
+    name: auth-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017}
+      database: ${MONGODB_DATABASE_AUTH:payvault_auth}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka}
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+
+# Never hardcode a real secret here or in any committed file - see .env.example.
+# jjwt requires an HS256 key of at least 256 bits (32 bytes); the local dev
+# fallback below is long enough to satisfy that minimum for convenience,
+# and must be overridden via JWT_SECRET outside local dev.
+jwt:
+  secret: ${JWT_SECRET:dev-only-please-override-32bytes!}
+  expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    com.payvault.auth: INFO

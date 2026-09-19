@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  background-color: theme('colors.paper.DEFAULT');
+}
+
+body {
+  @apply font-sans text-ink antialiased;
+}
+
+/* Amounts, transaction IDs, and anything tabular use the mono face so
+   figures line up the way they would in a real bank statement. */
+.figure {
+  @apply font-mono tabular-nums;
+}
+
+/* Signature element: a passbook ledger stub. The left edge simulates a
+   torn perforation using a repeating radial-gradient "bite" pattern -
+   a small, deliberate physical-object reference for a digital ledger,
+   rather than a plain rounded card. */
+.ledger-stub {
+  position: relative;
+  background: theme('colors.paper.raised');
+  border: 1px solid theme('colors.line.DEFAULT');
+  border-left: none;
+  padding-left: 1.5rem;
+}
+
+.ledger-stub::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -1px;
+  width: 14px;
+  background-image: radial-gradient(
+    circle at 0 8px,
+    transparent 6px,
+    theme('colors.line.DEFAULT') 6.5px,
+    theme('colors.line.DEFAULT') 7px,
+    transparent 7.5px
+  );
+  background-size: 14px 16px;
+  background-repeat: repeat-y;
+  background-color: theme('colors.paper.DEFAULT');
+}
+
+.dotted-leader {
+  border-bottom: 1px dotted theme('colors.line.DEFAULT');
+  flex: 1;
+  margin: 0 0.5rem;
+  height: 0.6em;
+}

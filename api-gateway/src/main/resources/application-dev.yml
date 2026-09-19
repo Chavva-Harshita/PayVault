@@ -1,0 +1,7 @@
+# Local development overrides for api-gateway.
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway: DEBUG
+    reactor.netty.http.client: DEBUG

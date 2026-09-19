@@ -1,0 +1,234 @@
+# Brings up the entire PayVault stack with one command:
+#
+#   docker compose up --build
+#
+# Startup order is enforced via depends_on + healthchecks: mongodb and
+# eureka-server must be healthy before any service that needs them starts,
+# and the backend services must be healthy before the frontend's build
+# even matters (the frontend doesn't depend on them at runtime - it's a
+# static site - but there's no point opening it before the API works).
+#
+# IMPORTANT: services here reach each other by container hostname
+# (e.g. http://eureka-server:8761, mongodb:27017) over the Docker
+# network Compose creates automatically - NOT via localhost. The
+# frontend is the one exception: it runs in the user's BROWSER, not
+# inside this network, so it must reach the Gateway via a HOST-published
+# port (localhost:8080), which is why VITE_API_BASE_URL and
+# FRONTEND_ORIGIN below still say "localhost".
+
+version: "3.9"
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: payvault-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  eureka-server:
+    build:
+      context: .
+      dockerfile: eureka-server/Dockerfile
+    container_name: payvault-eureka-server
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    container_name: payvault-auth-service
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    environment:
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_DATABASE_AUTH: ${MONGODB_DATABASE_AUTH:-payvault_auth}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-3600000}
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    container_name: payvault-user-service
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    environment:
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_DATABASE_USERS: ${MONGODB_DATABASE_USERS:-payvault_users}
+    ports:
+      - "8082:8082"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8082/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  wallet-service:
+    build:
+      context: .
+      dockerfile: wallet-service/Dockerfile
+    container_name: payvault-wallet-service
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    environment:
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_DATABASE_WALLETS: ${MONGODB_DATABASE_WALLETS:-payvault_wallets}
+    ports:
+      - "8083:8083"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8083/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Second instance of the SAME image (Phase 8's load-balancing setup,
+  # containerized). Registers under the same logical WALLET-SERVICE name
+  # in Eureka - transaction-service's Feign client never knows there are
+  # two of these.
+  wallet-service-2:
+    build:
+      context: .
+      dockerfile: wallet-service/Dockerfile
+    container_name: payvault-wallet-service-2
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: dev,instance2
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_DATABASE_WALLETS: ${MONGODB_DATABASE_WALLETS:-payvault_wallets}
+    ports:
+      - "8093:8093"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8093/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  transaction-service:
+    build:
+      context: .
+      dockerfile: transaction-service/Dockerfile
+    container_name: payvault-transaction-service
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      wallet-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+    environment:
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_DATABASE_TRANSACTIONS: ${MONGODB_DATABASE_TRANSACTIONS:-payvault_transactions}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
+      # The frontend's ORIGIN as seen by the browser (see the top-of-file
+      # note on why this differs from container-to-container URLs) - used
+      # here to set the WebSocket endpoint's allowed origin.
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5174}
+    ports:
+      - "8084:8084"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8084/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: payvault-api-gateway
+    restart: unless-stopped
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      wallet-service:
+        condition: service_healthy
+      transaction-service:
+        condition: service_healthy
+    environment:
+      EUREKA_SERVER_URL: http://eureka-server:8761/eureka
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5174}
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Baked in at BUILD time - the browser reaches the Gateway via
+        # this HOST-published address, never a container hostname.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+    container_name: payvault-frontend
+    restart: unless-stopped
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    ports:
+      - "5174:80"
+
+volumes:
+  mongo-data:

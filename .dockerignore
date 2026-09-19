@@ -1,0 +1,14 @@
+# Applies to every service's Docker build context (each Dockerfile uses the
+# repo root as its context so multi-module Maven builds can see the parent
+# pom.xml and sibling module poms).
+
+**/target/
+**/node_modules/
+**/dist/
+**/.idea/
+**/*.iml
+.git/
+.gitignore
+*.log
+.env
+.env.local
