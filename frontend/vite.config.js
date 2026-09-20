@@ -6,6 +6,6 @@ export default defineConfig({
   server: {
     // Must match FRONTEND_ORIGIN in the backend's .env - the API Gateway's
     // CORS filter (Phase 7) only allows this exact origin through.
-    port: 5173,
+    port: 5174,
   },
 })

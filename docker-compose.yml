@@ -16,15 +16,13 @@
 # port (localhost:8080), which is why VITE_API_BASE_URL and
 # FRONTEND_ORIGIN below still say "localhost".
 
-version: "3.9"
-
 services:
   mongodb:
     image: mongo:7
     container_name: payvault-mongodb
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      - "27019:27017"
     volumes:
       - mongo-data:/data/db
     healthcheck:

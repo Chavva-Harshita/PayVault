@@ -48,7 +48,7 @@ class TransactionServiceTest {
         transactionService = new TransactionService(transactionRepository, ledgerRepository,
                 idempotencyRepository, mongoTemplate, userClient, walletClient, walletUpdateNotifier);
         // Fresh key by default in every test unless a test overrides this stub.
-        when(idempotencyRepository.findByIdempotencyKey(any())).thenReturn(Optional.empty());
+        lenient().when(idempotencyRepository.findByIdempotencyKey(any())).thenReturn(Optional.empty());
     }
 
     @Test

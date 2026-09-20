@@ -24,12 +24,13 @@ eureka:
 # tokens with and api-gateway validates them with - this service only
 # needs it to authenticate the STOMP CONNECT frame (see
 # StompAuthChannelInterceptor), never to issue tokens itself.
+#noinspection YAML_UNKNOWN_PROPERTY
 jwt:
-  secret: ${JWT_SECRET:dev-only-please-override-32bytes!}
+  secret: "${JWT_SECRET:dev-only-please-override-32bytes!}"
 
 app:
   cors:
-    allowed-origin: ${FRONTEND_ORIGIN:http://localhost:5173}
+    allowed-origin: ${FRONTEND_ORIGIN:http://localhost:5174}
 
 # Fault-tolerance defaults for calls to USER-SERVICE / WALLET-SERVICE.
 # Feign-level timeouts stop a single slow call from hanging forever;
