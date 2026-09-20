@@ -108,8 +108,12 @@ healthy rather than just "started."
 Once everything is healthy:
 
 | Service | URL |
-|---|---|
+
+
+| Frontend | http://localhost:5174 |
+
 | Frontend | http://localhost:5174|
+
 | API Gateway | http://localhost:8080 |
 | Eureka dashboard | http://localhost:8761 |
 

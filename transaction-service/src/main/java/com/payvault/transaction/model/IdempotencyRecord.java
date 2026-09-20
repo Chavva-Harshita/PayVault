@@ -34,7 +34,7 @@ public class IdempotencyRecord {
 
     private Instant createdAt;
 
-    @Indexed(name = "expiresAt_ttl_idx", expireAfterSeconds = 0)
+    @Indexed(name = "expiresAt_ttl_idx", expireAfter = "0s")
     private Instant expiresAt;
 
     public IdempotencyRecord() {

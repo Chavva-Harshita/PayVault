@@ -4,9 +4,10 @@
 FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /workspace
 COPY . .
-RUN mvn -pl api-gateway -am package -DskipTests -q
+RUN mvn -pl api-gateway -am package -DskipTests
 
 FROM eclipse-temurin:17-jre-alpine
+RUN apk add --no-cache wget
 WORKDIR /app
 COPY --from=build /workspace/api-gateway/target/api-gateway-1.0.0.jar app.jar
 
